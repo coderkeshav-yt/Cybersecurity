@@ -707,3 +707,801 @@ sudo apt install inotify-tools
 # Watch directory for changes
 inotifywait -m -r -e modify,create,delete /etc/
 ```
+
+
+---
+
+## Module 4: Security Tools and Scanning (Day 21)
+
+### 4.1 Vulnerability Scanning
+
+#### Lynis - Security Auditing Tool
+```bash
+# Install Lynis
+sudo apt install lynis
+
+# Run full system audit
+sudo lynis audit system
+
+# Run specific tests
+sudo lynis audit system --tests-from-group authentication
+sudo lynis audit system --tests-from-group networking
+
+# Generate report
+sudo lynis audit system --report-file /tmp/lynis-report.txt
+
+# View suggestions
+sudo cat /var/log/lynis.log | grep Suggestion
+
+# View warnings
+sudo cat /var/log/lynis.log | grep Warning
+
+# Automated scanning
+sudo crontab -e
+0 3 * * 0 /usr/bin/lynis audit system --cronjob
+```
+
+#### OpenVAS (Greenbone Vulnerability Manager)
+```bash
+# Install OpenVAS
+sudo apt install openvas
+
+# Setup OpenVAS
+sudo gvm-setup
+
+# Start services
+sudo gvm-start
+
+# Access web interface
+# https://localhost:9392
+
+# Update feeds
+sudo gvm-feed-update
+
+# Create scan target
+# Create scan task
+# Review results
+```
+
+#### Nikto - Web Server Scanner
+```bash
+# Install Nikto
+sudo apt install nikto
+
+# Basic scan
+nikto -h http://target.com
+
+# Scan with SSL
+nikto -h https://target.com
+
+# Scan specific port
+nikto -h target.com -p 8080
+
+# Save output
+nikto -h target.com -o report.html -Format html
+
+# Scan multiple hosts
+nikto -h hosts.txt
+
+# Tuning options
+nikto -h target.com -Tuning 123456789
+```
+
+### 4.2 Rootkit Detection
+
+#### rkhunter (Rootkit Hunter)
+```bash
+# Install rkhunter
+sudo apt install rkhunter
+
+# Update database
+sudo rkhunter --update
+
+# Run check
+sudo rkhunter --check
+
+# Skip keypress prompts
+sudo rkhunter --check --skip-keypress
+
+# Report warnings only
+sudo rkhunter --check --report-warnings-only
+
+# Update file properties
+sudo rkhunter --propupd
+
+# Configuration
+sudo nano /etc/rkhunter.conf
+
+# Key settings:
+UPDATE_MIRRORS=1
+MIRRORS_MODE=0
+WEB_CMD="/usr/bin/wget"
+ALLOW_SSH_ROOT_USER=no
+ALLOW_SSH_PROT_V1=0
+
+# Automate with cron
+sudo crontab -e
+0 3 * * * /usr/bin/rkhunter --check --skip-keypress --report-warnings-only | mail -s "rkhunter Report" admin@example.com
+```
+
+#### chkrootkit
+```bash
+# Install chkrootkit
+sudo apt install chkrootkit
+
+# Run check
+sudo chkrootkit
+
+# Check specific test
+sudo chkrootkit -l
+sudo chkrootkit sniffer
+
+# Quiet mode (show only infected)
+sudo chkrootkit -q
+
+# Automate
+sudo crontab -e
+0 4 * * * /usr/sbin/chkrootkit | mail -s "chkrootkit Report" admin@example.com
+```
+
+### 4.3 Malware Scanning
+
+#### ClamAV - Antivirus
+```bash
+# Install ClamAV
+sudo apt install clamav clamav-daemon
+
+# Update virus definitions
+sudo freshclam
+
+# Scan directory
+sudo clamscan -r /home
+
+# Scan and remove infected files
+sudo clamscan -r --remove /home
+
+# Scan and move infected files
+sudo clamscan -r --move=/quarantine /home
+
+# Scan with verbose output
+sudo clamscan -r -v /home
+
+# Scan and log
+sudo clamscan -r -l /var/log/clamav/scan.log /home
+
+# Real-time scanning daemon
+sudo systemctl start clamav-daemon
+sudo systemctl enable clamav-daemon
+
+# Configure on-access scanning
+sudo nano /etc/clamav/clamd.conf
+
+# Automate daily scans
+sudo crontab -e
+0 2 * * * /usr/bin/clamscan -r /home --log=/var/log/clamav/daily-scan.log
+```
+
+---
+
+## Module 5: Compliance and Best Practices (Day 22)
+
+### 5.1 CIS Benchmarks
+
+#### Understanding CIS Benchmarks
+```
+CIS (Center for Internet Security) provides security configuration benchmarks
+Levels:
+- Level 1: Basic security, minimal impact on functionality
+- Level 2: Enhanced security, may impact functionality
+
+Key areas:
+1. Initial Setup
+2. Services
+3. Network Configuration
+4. Logging and Auditing
+5. Access, Authentication and Authorization
+6. System Maintenance
+```
+
+
+#### Implementing CIS Controls
+```bash
+# 1. Filesystem Configuration
+# Ensure separate partitions
+/tmp
+/var
+/var/tmp
+/var/log
+/var/log/audit
+/home
+
+# Mount options for /tmp
+sudo nano /etc/fstab
+tmpfs /tmp tmpfs defaults,rw,nosuid,nodev,noexec,relatime 0 0
+
+# 2. Disable unnecessary services
+sudo systemctl disable avahi-daemon
+sudo systemctl disable cups
+sudo systemctl disable isc-dhcp-server
+sudo systemctl disable isc-dhcp-server6
+sudo systemctl disable slapd
+sudo systemctl disable nfs-server
+sudo systemctl disable rpcbind
+sudo systemctl disable bind9
+sudo systemctl disable vsftpd
+sudo systemctl disable apache2
+sudo systemctl disable dovecot
+sudo systemctl disable smbd
+sudo systemctl disable snmpd
+sudo systemctl disable rsync
+
+# 3. Network hardening
+sudo nano /etc/sysctl.conf
+
+# IP forwarding
+net.ipv4.ip_forward = 0
+net.ipv6.conf.all.forwarding = 0
+
+# Packet redirect
+net.ipv4.conf.all.send_redirects = 0
+net.ipv4.conf.default.send_redirects = 0
+
+# Source routing
+net.ipv4.conf.all.accept_source_route = 0
+net.ipv4.conf.default.accept_source_route = 0
+net.ipv6.conf.all.accept_source_route = 0
+net.ipv6.conf.default.accept_source_route = 0
+
+# ICMP redirects
+net.ipv4.conf.all.accept_redirects = 0
+net.ipv4.conf.default.accept_redirects = 0
+net.ipv6.conf.all.accept_redirects = 0
+net.ipv6.conf.default.accept_redirects = 0
+
+# Secure ICMP redirects
+net.ipv4.conf.all.secure_redirects = 0
+net.ipv4.conf.default.secure_redirects = 0
+
+# Log suspicious packets
+net.ipv4.conf.all.log_martians = 1
+net.ipv4.conf.default.log_martians = 1
+
+# Ignore ICMP ping
+net.ipv4.icmp_echo_ignore_all = 1
+
+# Ignore broadcast pings
+net.ipv4.icmp_echo_ignore_broadcasts = 1
+
+# SYN flood protection
+net.ipv4.tcp_syncookies = 1
+net.ipv4.tcp_max_syn_backlog = 2048
+net.ipv4.tcp_synack_retries = 2
+net.ipv4.tcp_syn_retries = 5
+
+# Apply settings
+sudo sysctl -p
+
+# 4. Disable IPv6 (if not needed)
+sudo nano /etc/default/grub
+GRUB_CMDLINE_LINUX="ipv6.disable=1"
+sudo update-grub
+```
+
+### 5.2 SELinux / AppArmor
+
+#### AppArmor (Ubuntu/Debian)
+```bash
+# Check AppArmor status
+sudo aa-status
+
+# Install AppArmor utilities
+sudo apt install apparmor-utils
+
+# List profiles
+sudo aa-status
+
+# Set profile to enforce mode
+sudo aa-enforce /etc/apparmor.d/usr.sbin.nginx
+
+# Set profile to complain mode
+sudo aa-complain /etc/apparmor.d/usr.sbin.nginx
+
+# Disable profile
+sudo aa-disable /etc/apparmor.d/usr.sbin.nginx
+
+# Reload profiles
+sudo systemctl reload apparmor
+
+# Create custom profile
+sudo aa-genprof /usr/bin/myapp
+
+# Update profile
+sudo aa-logprof
+
+# View AppArmor logs
+sudo journalctl -fx | grep apparmor
+sudo dmesg | grep apparmor
+```
+
+#### SELinux (RHEL/CentOS)
+```bash
+# Check SELinux status
+sestatus
+getenforce
+
+# Set SELinux mode
+sudo setenforce 0  # Permissive
+sudo setenforce 1  # Enforcing
+
+# Permanent configuration
+sudo nano /etc/selinux/config
+SELINUX=enforcing
+SELINUXTYPE=targeted
+
+# View SELinux contexts
+ls -Z /path/to/file
+ps -eZ
+
+# Change file context
+sudo chcon -t httpd_sys_content_t /var/www/html/index.html
+
+# Restore default context
+sudo restorecon -Rv /var/www/html/
+
+# SELinux booleans
+getsebool -a
+sudo setsebool -P httpd_can_network_connect on
+
+# View SELinux denials
+sudo ausearch -m avc -ts recent
+sudo grep AVC /var/log/audit/audit.log
+
+# Generate policy from denials
+sudo audit2allow -a
+sudo audit2allow -a -M mypolicy
+sudo semodule -i mypolicy.pp
+```
+
+### 5.3 Kernel Hardening
+
+#### Kernel Parameters
+```bash
+# Edit sysctl configuration
+sudo nano /etc/sysctl.d/99-security.conf
+
+# Kernel hardening
+kernel.dmesg_restrict = 1                    # Restrict dmesg
+kernel.kptr_restrict = 2                     # Hide kernel pointers
+kernel.yama.ptrace_scope = 1                 # Restrict ptrace
+kernel.kexec_load_disabled = 1               # Disable kexec
+kernel.unprivileged_bpf_disabled = 1         # Disable unprivileged BPF
+kernel.unprivileged_userns_clone = 0         # Disable user namespaces
+fs.protected_hardlinks = 1                   # Protect hardlinks
+fs.protected_symlinks = 1                    # Protect symlinks
+fs.suid_dumpable = 0                         # Disable core dumps for SUID
+
+# Apply settings
+sudo sysctl -p /etc/sysctl.d/99-security.conf
+```
+
+
+#### Kernel Module Management
+```bash
+# List loaded modules
+lsmod
+
+# Load module
+sudo modprobe module_name
+
+# Remove module
+sudo modprobe -r module_name
+
+# Blacklist modules
+sudo nano /etc/modprobe.d/blacklist.conf
+
+# Disable uncommon protocols
+install dccp /bin/true
+install sctp /bin/true
+install rds /bin/true
+install tipc /bin/true
+
+# Disable uncommon filesystems
+install cramfs /bin/true
+install freevxfs /bin/true
+install jffs2 /bin/true
+install hfs /bin/true
+install hfsplus /bin/true
+install udf /bin/true
+
+# Disable USB storage (if not needed)
+install usb-storage /bin/true
+
+# Update initramfs
+sudo update-initramfs -u
+```
+
+### 5.4 Security Automation Scripts
+
+#### System Hardening Script
+```bash
+#!/bin/bash
+# system-hardening.sh - Automated security hardening
+
+echo "Starting system hardening..."
+
+# Update system
+apt update && apt upgrade -y
+
+# Install security tools
+apt install -y fail2ban ufw aide rkhunter clamav auditd
+
+# Configure firewall
+ufw default deny incoming
+ufw default allow outgoing
+ufw allow ssh
+ufw enable
+
+# Secure SSH
+sed -i 's/#PermitRootLogin yes/PermitRootLogin no/' /etc/ssh/sshd_config
+sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/' /etc/ssh/sshd_config
+systemctl restart sshd
+
+# Configure automatic updates
+apt install -y unattended-upgrades
+dpkg-reconfigure -plow unattended-upgrades
+
+# Set password policies
+sed -i 's/PASS_MAX_DAYS\t99999/PASS_MAX_DAYS\t90/' /etc/login.defs
+sed -i 's/PASS_MIN_DAYS\t0/PASS_MIN_DAYS\t7/' /etc/login.defs
+
+# Disable unnecessary services
+systemctl disable avahi-daemon
+systemctl disable cups
+
+# Initialize AIDE
+aideinit
+mv /var/lib/aide/aide.db.new /var/lib/aide/aide.db
+
+# Update ClamAV
+freshclam
+
+# Configure auditd
+systemctl enable auditd
+systemctl start auditd
+
+echo "System hardening complete!"
+```
+
+#### Security Audit Script
+```bash
+#!/bin/bash
+# security-audit.sh - Automated security audit
+
+REPORT="/tmp/security-audit-$(date +%Y%m%d).txt"
+
+echo "Security Audit Report - $(date)" > $REPORT
+echo "======================================" >> $REPORT
+
+# Check for users with UID 0
+echo -e "\n[*] Users with UID 0:" >> $REPORT
+awk -F: '($3 == 0) {print}' /etc/passwd >> $REPORT
+
+# Check for users without passwords
+echo -e "\n[*] Users without passwords:" >> $REPORT
+awk -F: '($2 == "") {print $1}' /etc/shadow >> $REPORT
+
+# Check for world-writable files
+echo -e "\n[*] World-writable files:" >> $REPORT
+find / -xdev -type f -perm -0002 2>/dev/null | head -20 >> $REPORT
+
+# Check for SUID files
+echo -e "\n[*] SUID files:" >> $REPORT
+find / -xdev -type f -perm -4000 2>/dev/null >> $REPORT
+
+# Check listening ports
+echo -e "\n[*] Listening ports:" >> $REPORT
+ss -tlnp >> $REPORT
+
+# Check failed login attempts
+echo -e "\n[*] Recent failed logins:" >> $REPORT
+grep "Failed password" /var/log/auth.log | tail -20 >> $REPORT
+
+# Check sudo usage
+echo -e "\n[*] Recent sudo usage:" >> $REPORT
+grep sudo /var/log/auth.log | tail -20 >> $REPORT
+
+# Check firewall status
+echo -e "\n[*] Firewall status:" >> $REPORT
+ufw status verbose >> $REPORT
+
+# Check for rootkits
+echo -e "\n[*] Rootkit scan:" >> $REPORT
+rkhunter --check --skip-keypress --report-warnings-only >> $REPORT
+
+echo "Audit complete. Report saved to $REPORT"
+```
+
+---
+
+## Practical Exercises
+
+### Exercise 1: User Security (Day 18)
+1. Implement strong password policies with PAM
+2. Configure account lockout after failed attempts
+3. Set up password aging for all users
+4. Configure sudo with least privilege
+5. Harden SSH configuration
+6. Implement two-factor authentication (optional)
+
+### Exercise 2: File System Security (Day 19)
+1. Audit and secure file permissions
+2. Find and review all SUID/SGID files
+3. Implement file attributes with chattr
+4. Set up encrypted partition with LUKS
+5. Configure AIDE for file integrity monitoring
+6. Create automated integrity check reports
+
+### Exercise 3: System Auditing (Day 20)
+1. Configure auditd with comprehensive rules
+2. Set up centralized logging with rsyslog
+3. Implement log rotation policies
+4. Create real-time monitoring alerts
+5. Generate audit reports
+6. Set up automated log analysis
+
+### Exercise 4: Security Scanning (Day 21)
+1. Run Lynis security audit
+2. Perform vulnerability scan with OpenVAS
+3. Scan web applications with Nikto
+4. Check for rootkits with rkhunter and chkrootkit
+5. Scan for malware with ClamAV
+6. Document and remediate findings
+
+### Exercise 5: Compliance (Day 22)
+1. Implement CIS Benchmark Level 1 controls
+2. Configure AppArmor or SELinux
+3. Harden kernel parameters
+4. Disable unnecessary services and protocols
+5. Create security hardening script
+6. Perform final security audit
+
+
+---
+
+## Daily Challenges
+
+### Day 18 Challenge: Secure Authentication System
+Build a comprehensive authentication system:
+- Multi-layered password policies
+- Account lockout mechanism
+- SSH key-only authentication
+- Sudo access with logging
+- Session timeout policies
+- Failed login monitoring and alerting
+
+### Day 19 Challenge: Secure File Server
+Create a hardened file server:
+- Encrypted storage with LUKS
+- Strict file permissions
+- File integrity monitoring
+- Immutable system files
+- Audit trail for all file access
+- Automated security checks
+
+### Day 20 Challenge: Security Monitoring System
+Implement comprehensive monitoring:
+- System-wide audit rules
+- Centralized log collection
+- Real-time alert system
+- Automated log analysis
+- Security event correlation
+- Daily security reports
+
+### Day 21 Challenge: Vulnerability Management
+Build a vulnerability management system:
+- Automated security scanning
+- Vulnerability assessment
+- Rootkit detection
+- Malware scanning
+- Remediation tracking
+- Compliance reporting
+
+### Day 22 Challenge: Hardened Production Server
+Deploy a fully hardened server:
+- CIS Benchmark compliance
+- Mandatory Access Control (AppArmor/SELinux)
+- Kernel hardening
+- Minimal attack surface
+- Automated security updates
+- Continuous security monitoring
+
+---
+
+## Troubleshooting Common Issues
+
+### PAM Configuration Issues
+```bash
+# Test PAM configuration
+sudo pamtester login username authenticate
+
+# Check PAM logs
+sudo journalctl -u systemd-logind
+sudo tail -f /var/log/auth.log
+
+# Reset PAM if locked out
+# Boot into recovery mode
+mount -o remount,rw /
+nano /etc/pam.d/common-auth
+# Comment out problematic lines
+reboot
+```
+
+### Audit System Issues
+```bash
+# Check auditd status
+sudo systemctl status auditd
+
+# View audit errors
+sudo ausearch -m DAEMON_START
+
+# Restart auditd
+sudo service auditd restart
+
+# Check disk space
+df -h /var/log/audit/
+
+# Rotate audit logs
+sudo service auditd rotate
+```
+
+### AppArmor/SELinux Issues
+```bash
+# AppArmor - Set to complain mode
+sudo aa-complain /etc/apparmor.d/*
+
+# View AppArmor denials
+sudo journalctl -fx | grep apparmor
+
+# SELinux - Set to permissive
+sudo setenforce 0
+
+# View SELinux denials
+sudo ausearch -m avc -ts recent
+
+# Generate policy
+sudo audit2allow -a -M mypolicy
+sudo semodule -i mypolicy.pp
+```
+
+### Encrypted Volume Issues
+```bash
+# Check LUKS header
+sudo cryptsetup luksDump /dev/sdb1
+
+# Repair filesystem
+sudo fsck /dev/mapper/encrypted_volume
+
+# Backup LUKS header
+sudo cryptsetup luksHeaderBackup /dev/sdb1 --header-backup-file backup.img
+
+# Emergency access
+# Boot from live USB
+sudo cryptsetup luksOpen /dev/sdb1 rescue
+sudo mount /dev/mapper/rescue /mnt
+```
+
+---
+
+## Best Practices
+
+### User Security
+1. Enforce strong password policies
+2. Implement multi-factor authentication
+3. Use key-based authentication for SSH
+4. Apply principle of least privilege
+5. Regular user access reviews
+6. Disable unused accounts
+7. Monitor privileged access
+8. Implement session timeouts
+
+### File System Security
+1. Use appropriate file permissions
+2. Regularly audit SUID/SGID files
+3. Implement file integrity monitoring
+4. Encrypt sensitive data
+5. Use immutable attributes for critical files
+6. Regular backup and verification
+7. Secure mount options
+8. Monitor file system changes
+
+### System Auditing
+1. Enable comprehensive audit rules
+2. Centralize log collection
+3. Implement log retention policies
+4. Regular log review and analysis
+5. Real-time alerting for critical events
+6. Protect log files from tampering
+7. Automated log rotation
+8. Compliance reporting
+
+### Security Scanning
+1. Regular vulnerability assessments
+2. Automated security scans
+3. Rootkit detection
+4. Malware scanning
+5. Patch management
+6. Configuration compliance checks
+7. Penetration testing
+8. Security metrics tracking
+
+### Compliance
+1. Follow industry standards (CIS, NIST)
+2. Implement mandatory access controls
+3. Kernel hardening
+4. Disable unnecessary services
+5. Network hardening
+6. Regular security audits
+7. Documentation and change management
+8. Continuous improvement
+
+---
+
+## Additional Resources
+
+### Documentation
+- [CIS Benchmarks](https://www.cisecurity.org/cis-benchmarks/)
+- [NIST Cybersecurity Framework](https://www.nist.gov/cyberframework)
+- [Linux Security Guide](https://www.kernel.org/doc/html/latest/admin-guide/security.html)
+- [AppArmor Documentation](https://gitlab.com/apparmor/apparmor/-/wikis/home)
+- [SELinux Project](https://github.com/SELinuxProject)
+
+### Tools
+- [Lynis](https://cisofy.com/lynis/) - Security auditing tool
+- [OpenSCAP](https://www.open-scap.org/) - Security compliance
+- [AIDE](https://aide.github.io/) - File integrity monitoring
+- [Auditd](https://linux.die.net/man/8/auditd) - Linux audit daemon
+- [ClamAV](https://www.clamav.net/) - Antivirus engine
+
+### Books
+- "Linux Security Cookbook" by Daniel J. Barrett
+- "Practical Linux Security" by Tajinder Kalsi
+- "Mastering Linux Security and Hardening" by Donald A. Tevault
+- "Linux Hardening in Hostile Networks" by Kyle Rankin
+
+### Online Platforms
+- [Linux Security](https://linuxsecurity.com/)
+- [SANS Reading Room](https://www.sans.org/reading-room/)
+- [OWASP](https://owasp.org/)
+
+---
+
+## Summary and Next Steps
+
+After completing this Security Hardening module, you should be proficient in:
+
+✓ Implementing strong authentication and access controls
+✓ Securing file systems and data encryption
+✓ Configuring comprehensive system auditing
+✓ Using security scanning and vulnerability assessment tools
+✓ Applying compliance frameworks and best practices
+✓ Automating security tasks and monitoring
+✓ Troubleshooting security-related issues
+✓ Maintaining a hardened production environment
+
+**Next Module**: Proceed to **Day 23+: Advanced Topics & Practical Labs** where you'll apply all learned skills in real-world scenarios and advanced security challenges.
+
+**Certification Path**: Consider pursuing:
+- CompTIA Security+
+- Linux Professional Institute Security Essentials (LPIC-303)
+- Certified Information Systems Security Professional (CISSP)
+- Certified Ethical Hacker (CEH)
+- GIAC Security Essentials (GSEC)
+
+**Career Paths**:
+- Linux Security Administrator
+- Security Operations Center (SOC) Analyst
+- Security Engineer
+- Compliance Analyst
+- Penetration Tester
+
+Keep practicing these skills in isolated lab environments and gradually implement them in production systems with proper change management and testing!
